@@ -15,11 +15,7 @@
             --wa-author-color: #53bdeb;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -31,7 +27,6 @@
             color: var(--wa-text-main);
         }
 
-        /* Setup / Upload View */
         .setup-container {
             background: #ffffff;
             padding: 30px;
@@ -42,16 +37,8 @@
             width: 90%;
         }
 
-        .setup-container h2 {
-            margin-bottom: 10px;
-            color: var(--wa-header);
-        }
-
-        .setup-container p {
-            font-size: 0.9rem;
-            color: var(--wa-text-meta);
-            margin-bottom: 20px;
-        }
+        .setup-container h2 { margin-bottom: 10px; color: var(--wa-header); }
+        .setup-container p { font-size: 0.9rem; color: var(--wa-text-meta); margin-bottom: 20px; }
 
         .file-label {
             display: inline-block;
@@ -61,26 +48,13 @@
             border-radius: 24px;
             cursor: pointer;
             font-weight: 600;
-            transition: background 0.2s;
         }
 
-        .file-label:hover {
-            background-color: #006e5a;
-        }
+        #file-input { display: none; }
+        #status { margin-top: 15px; font-size: 0.85rem; color: var(--wa-text-meta); }
 
-        #file-input {
-            display: none;
-        }
-
-        #status {
-            margin-top: 15px;
-            font-size: 0.85rem;
-            color: var(--wa-text-meta);
-        }
-
-        /* Main App Interface Shell */
         .app-shell {
-            display: none; /* Initially hidden until file upload */
+            display: none;
             width: 100vw;
             height: 100vh;
             max-width: 500px;
@@ -90,19 +64,8 @@
             border-radius: 10px;
             overflow: hidden;
             flex-direction: column;
-            position: relative;
         }
 
-        @media (max-width: 500px) {
-            .app-shell {
-                width: 100%;
-                height: 100%;
-                max-height: 100vh;
-                border-radius: 0;
-            }
-        }
-
-        /* Top Navigation Header bar */
         .chat-header {
             background-color: var(--wa-header);
             color: white;
@@ -111,7 +74,6 @@
             align-items: center;
             gap: 12px;
             z-index: 10;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .avatar {
@@ -126,21 +88,24 @@
             color: #54656f;
         }
 
-        .chat-info {
-            flex: 1;
-        }
+        .chat-info { flex: 1; }
+        .chat-title { font-size: 1rem; font-weight: 600; }
+        .chat-subtitle { font-size: 0.75rem; opacity: 0.85; }
 
-        .chat-title {
-            font-size: 1rem;
-            font-weight: 600;
+        #user-selector {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.8rem;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            outline: none;
+            cursor: pointer;
+            max-width: 120px;
         }
+        
+        #user-selector option { color: black; }
 
-        .chat-subtitle {
-            font-size: 0.75rem;
-            opacity: 0.85;
-        }
-
-        /* Scrollable Chat Window Background Body */
         .chat-body {
             flex: 1;
             padding: 20px 16px;
@@ -149,19 +114,11 @@
             flex-direction: column;
             gap: 12px;
             background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            background-repeat: repeat;
         }
 
-        /* Custom Scrollbar for modern look */
-        .chat-body::-webkit-scrollbar {
-            width: 6px;
-        }
-        .chat-body::-webkit-scrollbar-thumb {
-            background-color: rgba(11, 20, 26, 0.2);
-            border-radius: 3px;
-        }
+        .chat-body::-webkit-scrollbar { width: 6px; }
+        .chat-body::-webkit-scrollbar-thumb { background-color: rgba(11, 20, 26, 0.2); border-radius: 3px; }
 
-        /* System Info Date Badges */
         .system-badge {
             align-self: center;
             background-color: rgba(255, 255, 255, 0.92);
@@ -171,69 +128,35 @@
             font-size: 0.75rem;
             font-weight: 500;
             box-shadow: 0 1px 0.5px rgba(11,20,26,0.13);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
             margin: 8px 0;
         }
 
-        /* Standard Chat Bubble Layout */
         .msg-container {
             max-width: 80%;
             padding: 6px 9px 8px 9px;
             border-radius: 8px;
             font-size: 0.9rem;
             line-height: 1.4;
-            position: relative;
             box-shadow: 0 1px 0.5px rgba(11,20,26,0.13);
             display: flex;
             flex-direction: column;
             word-break: break-word;
         }
 
-        .msg-incoming {
-            align-self: flex-start;
-            background-color: var(--wa-bubble-in);
-            border-top-left-radius: 0;
-        }
+        .msg-incoming { align-self: flex-start; background-color: var(--wa-bubble-in); border-top-left-radius: 0; }
+        .msg-outgoing { align-self: flex-end; background-color: var(--wa-bubble-out); border-top-right-radius: 0; }
 
-        .msg-outgoing {
-            align-self: flex-end;
-            background-color: var(--wa-bubble-out);
-            border-top-right-radius: 0;
-        }
-
-        /* Meta details alignment logic inside bubbles */
-        .msg-author {
-            font-weight: 600;
-            font-size: 0.8rem;
-            color: var(--wa-author-color);
-            margin-bottom: 3px;
-        }
-
-        .msg-outgoing .msg-author {
-            display: none; /* Hide sender name on outgoing messages to mimic native layout */
-        }
-
-        .msg-text {
-            color: var(--wa-text-main);
-            white-space: pre-wrap;
-        }
-
-        .msg-meta {
-            font-size: 0.65rem;
-            color: var(--wa-text-meta);
-            align-self: flex-end;
-            margin-top: 4px;
-            margin-left: 20px;
-            margin-bottom: -4px;
-        }
+        .msg-author { font-weight: 600; font-size: 0.8rem; color: var(--wa-author-color); margin-bottom: 3px; }
+        .msg-outgoing .msg-author { display: none; }
+        .msg-text { color: var(--wa-text-main); }
+        .msg-meta { font-size: 0.65rem; color: var(--wa-text-meta); align-self: flex-end; margin-top: 4px; margin-left: 20px; margin-bottom: -4px; }
     </style>
 </head>
 <body>
 
     <div class="setup-container" id="setup-view">
         <h2>WhatsApp Viewer</h2>
-        <p>Select your exported <code>_chat.txt</code> archive to regenerate the conversation view locally.</p>
+        <p>Select your exported <code>_chat.txt</code> archive to regenerate the conversation.</p>
         <label for="file-input" class="file-label">Choose File</label>
         <input type="file" id="file-input" accept=".txt">
         <div id="status">Ready for import</div>
@@ -244,15 +167,14 @@
             <div class="avatar" id="header-avatar">WA</div>
             <div class="chat-info">
                 <div class="chat-title" id="header-title">WhatsApp Archive</div>
-                <div class="chat-subtitle" id="header-count">0 messages parsed</div>
+                <div class="chat-subtitle" id="header-count">0 messages loaded</div>
             </div>
+            <select id="user-selector" title="Select 'Me'"></select>
         </div>
-        
         <div class="chat-body" id="chat-body"></div>
     </div>
 
     <script>
-        // Initialize Background Web Worker connection
         const chatWorker = new Worker('worker.js');
         const setupView = document.getElementById('setup-view');
         const appView = document.getElementById('app-view');
@@ -261,29 +183,56 @@
         const headerTitle = document.getElementById('header-title');
         const headerCount = document.getElementById('header-count');
         const headerAvatar = document.getElementById('header-avatar');
+        const userSelector = document.getElementById('user-selector');
 
-        // Receive processed JSON back from the background thread
+        let globalMessages = [];
+
         chatWorker.onmessage = function(event) {
-            const messages = event.data;
-            if (messages.length === 0) {
-                statusDiv.innerText = "Error: Could not parse any valid messages. Check file format.";
+            globalMessages = event.data;
+            if (globalMessages.length === 0) {
+                statusDiv.innerText = "Error: Could not parse messages.";
                 return;
             }
 
-            // Update header data details
-            const sampleUser = messages[0].author;
-            headerTitle.innerText = `Chat: ${sampleUser} & Others`;
-            headerCount.innerText = `${messages.length} messages loaded`;
-            headerAvatar.innerText = sampleUser.substring(0, 2).toUpperCase();
+            // Extract all unique participants
+            const uniqueAuthors = [...new Set(globalMessages.map(m => m.author))];
+            
+            // Auto-detect phone owner
+            let primaryUser = uniqueAuthors.find(a => a.includes("Liang Yong Ket")) || uniqueAuthors[1] || uniqueAuthors[0];
 
-            // Clear display viewport
+            // Populate the dropdown selector
+            userSelector.innerHTML = "";
+            uniqueAuthors.forEach(author => {
+                const opt = document.createElement('option');
+                opt.value = author;
+                opt.innerText = author;
+                if (author === primaryUser) opt.selected = true;
+                userSelector.appendChild(opt);
+            });
+
+            // Listen for user changing the perspective
+            userSelector.addEventListener('change', (e) => {
+                renderChat(e.target.value);
+            });
+
+            // Initial render
+            renderChat(primaryUser);
+            
+            setupView.style.display = 'none';
+            appView.style.display = 'flex';
+        };
+
+        function renderChat(myUsername) {
             chatBody.innerHTML = "";
-
             let lastDateStr = "";
 
-            // Loop and append stylized UI fragments
-            messages.forEach(msg => {
-                // If message date changes, append a clean structural System date separator block
+            // Update Header to show the OTHER person's name
+            const otherUsers = [...new Set(globalMessages.map(m => m.author))].filter(a => a !== myUsername);
+            headerTitle.innerText = otherUsers.length > 0 ? otherUsers.join(", ") : "Saved Notes";
+            headerAvatar.innerText = otherUsers.length > 0 ? otherUsers[0].substring(0, 2).toUpperCase() : "ME";
+            headerCount.innerText = `${globalMessages.length} messages loaded`;
+
+            globalMessages.forEach(msg => {
                 if (msg.date !== lastDateStr) {
                     const dateBadge = document.createElement('div');
                     dateBadge.className = 'system-badge';
@@ -292,8 +241,8 @@
                     lastDateStr = msg.date;
                 }
 
-                // Determine incoming vs outgoing designation based on the primary sender context rules
-                const isOutgoing = msg.author !== sampleUser;
+                // If the message author matches the dropdown selection, it's outgoing (green)
+                const isOutgoing = msg.author === myUsername;
 
                 const msgBubble = document.createElement('div');
                 msgBubble.className = `msg-container ${isOutgoing ? 'msg-outgoing' : 'msg-incoming'}`;
@@ -307,15 +256,9 @@
                 chatBody.appendChild(msgBubble);
             });
 
-            // Transition UI displays to reveal final layout frame smoothly
-            setupView.style.display = 'none';
-            appView.style.display = 'flex';
-            
-            // Auto scroll down directly to the most recent elements
             chatBody.scrollTop = chatBody.scrollHeight;
-        };
+        }
 
-        // Handle text document uploads
         document.getElementById('file-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -324,7 +267,6 @@
 
             const reader = new FileReader();
             reader.onload = function(event) {
-                // Pipe stream content directly to the background thread processing context
                 chatWorker.postMessage(event.target.result);
             };
             reader.readAsText(file);
