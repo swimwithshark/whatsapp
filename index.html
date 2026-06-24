@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Local Archive Viewer</title>
     <style>
+        /* LIGHT MODE VARIABLES (Default) */
         :root {
             --wa-bg: #efeae2;
             --wa-header: #008069;
@@ -13,6 +14,20 @@
             --wa-text-main: #111b21;
             --wa-text-meta: #667781;
             --wa-author-color: #53bdeb;
+            --wa-system-bg: rgba(255, 255, 255, 0.92);
+            --wa-pattern-blend: normal;
+        }
+
+        /* DARK MODE VARIABLES */
+        body.dark-mode {
+            --wa-bg: #0b141a;
+            --wa-header: #202c33;
+            --wa-bubble-in: #202c33;
+            --wa-bubble-out: #005c4b;
+            --wa-text-main: #e9edef;
+            --wa-text-meta: #8696a0;
+            --wa-system-bg: #182229;
+            --wa-pattern-blend: multiply;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,30 +40,39 @@
             justify-content: center;
             align-items: center;
             color: var(--wa-text-main);
+            transition: background-color 0.3s ease;
         }
 
+        /* Update app background in dark mode */
+        body.dark-mode { background-color: #111b21; }
+
         .setup-container {
-            background: #ffffff;
+            background: var(--wa-bubble-in);
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             text-align: center;
             max-width: 400px;
             width: 90%;
+            color: var(--wa-text-main);
         }
 
         .setup-container h2 { margin-bottom: 10px; color: var(--wa-header); }
+        body.dark-mode .setup-container h2 { color: #00a884; }
+        
         .setup-container p { font-size: 0.9rem; color: var(--wa-text-meta); margin-bottom: 20px; }
 
         .file-label {
             display: inline-block;
-            background-color: var(--wa-header);
+            background-color: #008069;
             color: white;
             padding: 12px 24px;
             border-radius: 24px;
             cursor: pointer;
             font-weight: 600;
         }
+
+        body.dark-mode .file-label { background-color: #00a884; color: #111b21; }
 
         #file-input { display: none; }
         #status { margin-top: 15px; font-size: 0.85rem; color: var(--wa-text-meta); }
@@ -68,13 +92,15 @@
 
         .chat-header {
             background-color: var(--wa-header);
-            color: white;
+            color: #ffffff;
             padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             z-index: 10;
         }
+
+        body.dark-mode .chat-header { color: #e9edef; }
 
         .avatar {
             width: 40px;
@@ -89,28 +115,26 @@
             flex-shrink: 0;
         }
 
+        body.dark-mode .avatar { background-color: #667781; color: #e9edef; }
+
         .chat-info { flex: 1; min-width: 0; }
         .chat-title { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .chat-subtitle { font-size: 0.75rem; opacity: 0.85; }
 
-        /* --- NEW: Search Bar Styling --- */
         #search-input {
             padding: 6px 12px;
             border-radius: 20px;
             border: none;
             font-size: 0.85rem;
             background-color: rgba(255, 255, 255, 0.9);
-            color: var(--wa-text-main);
+            color: #111b21;
             outline: none;
-            width: 110px;
-            transition: width 0.3s ease, background-color 0.3s ease;
+            width: 100px;
+            transition: width 0.3s ease;
         }
 
-        #search-input:focus {
-            width: 160px;
-            background-color: #ffffff;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
-        }
+        body.dark-mode #search-input { background-color: #2a3942; color: #e9edef; }
+        #search-input:focus { width: 140px; }
 
         #user-selector {
             padding: 4px 8px;
@@ -121,10 +145,22 @@
             color: white;
             outline: none;
             cursor: pointer;
-            max-width: 90px;
+            max-width: 80px;
         }
         
+        body.dark-mode #user-selector { background-color: #2a3942; color: #e9edef; }
         #user-selector option { color: black; }
+
+        /* --- NEW: Dark Mode Toggle Button --- */
+        #theme-toggle {
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 1.2rem;
+            cursor: pointer;
+            outline: none;
+            margin-left: 4px;
+        }
 
         .chat-body {
             flex: 1;
@@ -133,16 +169,19 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            background-color: var(--wa-bg);
             background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-blend-mode: var(--wa-pattern-blend);
         }
 
         .chat-body::-webkit-scrollbar { width: 6px; }
         .chat-body::-webkit-scrollbar-thumb { background-color: rgba(11, 20, 26, 0.2); border-radius: 3px; }
+        body.dark-mode .chat-body::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); }
 
         .system-badge {
             align-self: center;
-            background-color: rgba(255, 255, 255, 0.92);
-            color: #54656f;
+            background-color: var(--wa-system-bg);
+            color: var(--wa-text-meta);
             padding: 6px 12px;
             border-radius: 8px;
             font-size: 0.75rem;
@@ -170,6 +209,22 @@
         .msg-outgoing .msg-author { display: none; }
         .msg-text { color: var(--wa-text-main); }
         .msg-meta { font-size: 0.65rem; color: var(--wa-text-meta); align-self: flex-end; margin-top: 4px; margin-left: 20px; margin-bottom: -4px; }
+
+        /* Custom File Fallback Styling */
+        .file-fallback {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.05);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 4px 0;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        body.dark-mode .file-fallback {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
     </style>
 </head>
 <body>
@@ -191,8 +246,8 @@
             </div>
             
             <input type="text" id="search-input" placeholder="🔍 Search...">
-            
             <select id="user-selector" title="Select 'Me'"></select>
+            <button id="theme-toggle" title="Toggle Dark Mode">🌙</button>
         </div>
         <div class="chat-body" id="chat-body"></div>
     </div>
@@ -207,18 +262,25 @@
         const headerCount = document.getElementById('header-count');
         const headerAvatar = document.getElementById('header-avatar');
         const userSelector = document.getElementById('user-selector');
-        const searchInput = document.getElementById('search-input'); // NEW
+        const searchInput = document.getElementById('search-input');
+        const themeToggle = document.getElementById('theme-toggle');
 
         let globalMessages = [];
-        let filteredMessages = []; // NEW: Array to hold search results
+        let filteredMessages = []; 
         let mediaVault = {};
         let displayLimit = 100; 
         let currentActiveUser = ""; 
 
+        // --- Dark Mode Logic ---
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            themeToggle.innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        });
+
         // 1. Receive data from Web Worker
         chatWorker.onmessage = function(event) {
             globalMessages = event.data;
-            filteredMessages = globalMessages; // Default to showing everything
+            filteredMessages = globalMessages;
 
             if (globalMessages.length === 0) {
                 statusDiv.innerText = "Error: Could not parse messages.";
@@ -249,25 +311,24 @@
             appView.style.display = 'flex';
         };
 
-        // --- NEW: Search Engine Logic ---
+        // 2. Search Engine Logic
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase().trim();
             
             if (searchTerm === "") {
-                filteredMessages = globalMessages; // Reset if search is empty
+                filteredMessages = globalMessages; 
             } else {
-                // Instantly filter the massive array for matching text or authors
                 filteredMessages = globalMessages.filter(msg => 
                     msg.text.toLowerCase().includes(searchTerm) || 
                     msg.author.toLowerCase().includes(searchTerm)
                 );
             }
             
-            displayLimit = 100; // Reset scroll view to top of new results
+            displayLimit = 100; 
             renderChat(currentActiveUser);
         });
 
-        // 2. Render Chat UI (Now uses filteredMessages instead of globalMessages)
+        // 3. Render Chat UI
         function renderChat(myUsername) {
             const oldScrollHeight = chatBody.scrollHeight;
             const isAtBottom = chatBody.scrollHeight - chatBody.scrollTop <= chatBody.clientHeight + 10;
@@ -279,12 +340,10 @@
             headerTitle.innerText = otherUsers.length > 0 ? otherUsers.join(", ") : "Saved Notes";
             headerAvatar.innerText = otherUsers.length > 0 ? otherUsers[0].substring(0, 2).toUpperCase() : "ME";
             
-            // Update subtitle dynamically based on search mode
             headerCount.innerText = searchInput.value.trim() !== "" 
                 ? `🔍 ${filteredMessages.length} results found` 
                 : `${filteredMessages.length} total messages`;
 
-            // Lazy Load Button for filtered results
             if (filteredMessages.length > displayLimit) {
                 const loadMoreBtn = document.createElement('button');
                 loadMoreBtn.innerText = `⬆️ Load Older Messages (${filteredMessages.length - displayLimit} hidden)`;
@@ -292,10 +351,10 @@
                 loadMoreBtn.style.margin = "10px auto";
                 loadMoreBtn.style.display = "block";
                 loadMoreBtn.style.borderRadius = "20px";
-                loadMoreBtn.style.border = "1px solid #ccc";
-                loadMoreBtn.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                loadMoreBtn.style.border = "1px solid var(--wa-header)";
+                loadMoreBtn.style.backgroundColor = "var(--wa-system-bg)";
                 loadMoreBtn.style.cursor = "pointer";
-                loadMoreBtn.style.color = "var(--wa-header)";
+                loadMoreBtn.style.color = "var(--wa-text-main)";
                 loadMoreBtn.style.fontWeight = "bold";
                 
                 loadMoreBtn.onclick = function() {
@@ -307,7 +366,6 @@
 
             const messagesToRender = filteredMessages.slice(-displayLimit);
 
-            // Edge case: No results found
             if (messagesToRender.length === 0) {
                 const noRes = document.createElement('div');
                 noRes.className = 'system-badge';
@@ -330,6 +388,7 @@
                 });
                 let displayContent = safeTextParts.join('<br>');
 
+                // Detect and Render Media (Including Fallbacks and Clickable Docs!)
                 for (const [filename, blobUrl] of Object.entries(mediaVault)) {
                     if (displayContent.includes(filename)) {
                         const lowerFile = filename.toLowerCase();
@@ -337,17 +396,29 @@
 
                         if (lowerFile.endsWith('.opus') || lowerFile.endsWith('.m4a')) {
                             mediaElement = `
-                                <div style="margin-bottom: 6px; font-weight: bold; color: var(--wa-header);">🎵 Voice Note</div>
+                                <div style="margin-bottom: 6px; font-weight: bold; opacity: 0.8;">🎵 Voice Note</div>
                                 <audio controls style="max-width: 250px; height: 40px; outline: none;">
                                     <source src="${blobUrl}">
                                 </audio>
                             `;
-                        } else if (lowerFile.endsWith('.jpg') || lowerFile.endsWith('.jpeg') || lowerFile.endsWith('.png')) {
-                            mediaElement = `<img src="${blobUrl}" style="max-width: 100%; max-height: 350px; border-radius: 8px; display: block; margin: 4px 0;">`;
+                        } else if (lowerFile.endsWith('.jpg') || lowerFile.endsWith('.jpeg') || lowerFile.endsWith('.png') || lowerFile.endsWith('.webp') || lowerFile.endsWith('.gif')) {
+                            mediaElement = `<img src="${blobUrl}" style="max-width: 100%; max-height: 350px; border-radius: 8px; display: block; margin: 4px 0; background: transparent;">`;
                         } else if (lowerFile.endsWith('.mp4')) {
                             mediaElement = `
-                                <div style="margin-bottom: 6px; font-weight: bold; color: var(--wa-header);">🎥 Video</div>
+                                <div style="margin-bottom: 6px; font-weight: bold; opacity: 0.8;">🎥 Video</div>
                                 <video controls src="${blobUrl}" style="max-width: 100%; max-height: 350px; border-radius: 8px; display: block; margin: 4px 0;"></video>
+                            `;
+                        } else {
+                            mediaElement = `
+                                <a href="${blobUrl}" target="_blank" style="text-decoration: none; color: inherit;" title="Click to open file">
+                                    <div class="file-fallback" style="cursor: pointer;">
+                                        <span style="font-size: 1.5rem;">📄</span>
+                                        <div style="display: flex; flex-direction: column;">
+                                            <strong style="font-size: 0.8rem; color: var(--wa-author-color);">Click to open file</strong>
+                                            <span style="font-size: 0.75rem; opacity: 0.8; word-break: break-all;">${filename}</span>
+                                        </div>
+                                    </div>
+                                </a>
                             `;
                         }
 
@@ -375,8 +446,8 @@
                 chatBody.scrollTop = chatBody.scrollHeight - oldScrollHeight;
             }
         }
-
-        // 3. Handle Folder Upload
+        
+        // 4. Handle Folder Upload
         document.getElementById('file-input').addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
