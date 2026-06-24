@@ -1,58 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>WhatsApp Importer</title>
-</head>
-<body>
+chatWorker.onmessage = function(event) {
+    const jsonArray = event.data;
+    statusDiv.innerText = `Success! Parsed ${jsonArray.length} messages.`;
+    
+    const chatDisplay = document.getElementById('chat-display');
+    chatDisplay.innerHTML = ""; // Clear out any old messages
 
-    <h2>Import WhatsApp Chat</h2>
-    <input type="file" id="file-input" accept=".txt">
-    <div id="status">Waiting for file...</div>
+    // Loop through every message the worker sent back
+    jsonArray.forEach(msg => {
+        // Create a new div for the message
+        const msgBubble = document.createElement('div');
+        
+        // Add some quick CSS styling to make it look like a chat bubble
+        msgBubble.style.backgroundColor = "#fff";
+        msgBubble.style.padding = "8px";
+        msgBubble.style.margin = "5px 0";
+        msgBubble.style.borderRadius = "5px";
+        msgBubble.style.boxShadow = "0 1px 1px rgba(0,0,0,0.1)";
 
-    <script>
-        // 1. Initialize the Web Worker pointing to your separate file
-        const chatWorker = new Worker('worker.js');
-        const statusDiv = document.getElementById('status');
+        // Format the text inside the bubble
+        msgBubble.innerHTML = `
+            <strong style="color: #075e54; font-size: 0.85em;">${msg.author}</strong><br>
+            <span>${msg.text}</span>
+            <div style="font-size: 0.7em; color: gray; text-align: right; margin-top: 4px;">
+                ${msg.date} - ${msg.time}
+            </div>
+        `;
 
-        // 2. Listen for the finished JSON data coming BACK from the worker
-        chatWorker.onmessage = function(event) {
-            const jsonArray = event.data;
-            statusDiv.innerText = `Success! Parsed ${jsonArray.length} messages. Ready to save to IndexedDB.`;
-            
-            // At this point, the UI is still completely responsive.
-            console.log(jsonArray); 
-        };
-
-        // 3. Handle the file upload and send it to the worker
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            statusDiv.innerText = "Processing massive file in background...";
-
-            // For a 1GB file, we use File.slice to read it in chunks.
-            // Here is a simplified 5MB chunk example:
-            const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
-            let offset = 0;
-
-            const reader = new FileReader();
-
-            reader.onload = function(event) {
-                const chunkText = event.target.result;
-                
-                // Send this specific chunk of text to the worker!
-                chatWorker.postMessage(chunkText);
-
-                // Note: In a full production app, you would loop this 
-                // until offset > file.size to process the whole 1GB file.
-            };
-
-            // Read the first 5MB slice of the file
-            const blob = file.slice(offset, offset + CHUNK_SIZE);
-            reader.readAsText(blob);
-        });
-    </script>
-
-</body>
-</html>
+        // Add the bubble to the screen
+        chatDisplay.appendChild(msgBubble);
+    });
+};
