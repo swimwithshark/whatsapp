@@ -86,11 +86,31 @@
             justify-content: center;
             font-weight: bold;
             color: #54656f;
+            flex-shrink: 0;
         }
 
-        .chat-info { flex: 1; }
-        .chat-title { font-size: 1rem; font-weight: 600; }
+        .chat-info { flex: 1; min-width: 0; }
+        .chat-title { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .chat-subtitle { font-size: 0.75rem; opacity: 0.85; }
+
+        /* --- NEW: Search Bar Styling --- */
+        #search-input {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: none;
+            font-size: 0.85rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: var(--wa-text-main);
+            outline: none;
+            width: 110px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        #search-input:focus {
+            width: 160px;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+        }
 
         #user-selector {
             padding: 4px 8px;
@@ -101,7 +121,7 @@
             color: white;
             outline: none;
             cursor: pointer;
-            max-width: 120px;
+            max-width: 90px;
         }
         
         #user-selector option { color: black; }
@@ -158,9 +178,7 @@
         <h2>WhatsApp Viewer</h2>
         <p>Select your entire exported WhatsApp <b>Folder</b> to load the chat and all media simultaneously.</p>
         <label for="file-input" class="file-label">Choose Folder</label>
-        
         <input type="file" id="file-input" webkitdirectory multiple>
-        
         <div id="status">Waiting for folder...</div>
     </div>
 
@@ -171,6 +189,9 @@
                 <div class="chat-title" id="header-title">WhatsApp Archive</div>
                 <div class="chat-subtitle" id="header-count">0 messages loaded</div>
             </div>
+            
+            <input type="text" id="search-input" placeholder="🔍 Search...">
+            
             <select id="user-selector" title="Select 'Me'"></select>
         </div>
         <div class="chat-body" id="chat-body"></div>
@@ -186,15 +207,19 @@
         const headerCount = document.getElementById('header-count');
         const headerAvatar = document.getElementById('header-avatar');
         const userSelector = document.getElementById('user-selector');
+        const searchInput = document.getElementById('search-input'); // NEW
 
         let globalMessages = [];
+        let filteredMessages = []; // NEW: Array to hold search results
         let mediaVault = {};
-        let displayLimit = 100; // Lazy loading limit
-        let currentActiveUser = ""; // Remembers who is selected in the dropdown
+        let displayLimit = 100; 
+        let currentActiveUser = ""; 
 
         // 1. Receive data from Web Worker
         chatWorker.onmessage = function(event) {
             globalMessages = event.data;
+            filteredMessages = globalMessages; // Default to showing everything
+
             if (globalMessages.length === 0) {
                 statusDiv.innerText = "Error: Could not parse messages.";
                 return;
@@ -214,7 +239,7 @@
 
             userSelector.addEventListener('change', (e) => {
                 currentActiveUser = e.target.value;
-                displayLimit = 100; // Reset scroll limit when switching users
+                displayLimit = 100; 
                 renderChat(currentActiveUser);
             });
 
@@ -224,7 +249,25 @@
             appView.style.display = 'flex';
         };
 
-        // 2. Render Chat UI (with Lazy Loading and Media parsing)
+        // --- NEW: Search Engine Logic ---
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            if (searchTerm === "") {
+                filteredMessages = globalMessages; // Reset if search is empty
+            } else {
+                // Instantly filter the massive array for matching text or authors
+                filteredMessages = globalMessages.filter(msg => 
+                    msg.text.toLowerCase().includes(searchTerm) || 
+                    msg.author.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            displayLimit = 100; // Reset scroll view to top of new results
+            renderChat(currentActiveUser);
+        });
+
+        // 2. Render Chat UI (Now uses filteredMessages instead of globalMessages)
         function renderChat(myUsername) {
             const oldScrollHeight = chatBody.scrollHeight;
             const isAtBottom = chatBody.scrollHeight - chatBody.scrollTop <= chatBody.clientHeight + 10;
@@ -235,12 +278,16 @@
             const otherUsers = [...new Set(globalMessages.map(m => m.author))].filter(a => a !== myUsername);
             headerTitle.innerText = otherUsers.length > 0 ? otherUsers.join(", ") : "Saved Notes";
             headerAvatar.innerText = otherUsers.length > 0 ? otherUsers[0].substring(0, 2).toUpperCase() : "ME";
-            headerCount.innerText = `${globalMessages.length} total messages`;
+            
+            // Update subtitle dynamically based on search mode
+            headerCount.innerText = searchInput.value.trim() !== "" 
+                ? `🔍 ${filteredMessages.length} results found` 
+                : `${filteredMessages.length} total messages`;
 
-            // Lazy Load Button
-            if (globalMessages.length > displayLimit) {
+            // Lazy Load Button for filtered results
+            if (filteredMessages.length > displayLimit) {
                 const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.innerText = `⬆️ Load Older Messages (${globalMessages.length - displayLimit} hidden)`;
+                loadMoreBtn.innerText = `⬆️ Load Older Messages (${filteredMessages.length - displayLimit} hidden)`;
                 loadMoreBtn.style.padding = "8px 16px";
                 loadMoreBtn.style.margin = "10px auto";
                 loadMoreBtn.style.display = "block";
@@ -258,10 +305,18 @@
                 chatBody.appendChild(loadMoreBtn);
             }
 
-            const messagesToRender = globalMessages.slice(-displayLimit);
+            const messagesToRender = filteredMessages.slice(-displayLimit);
+
+            // Edge case: No results found
+            if (messagesToRender.length === 0) {
+                const noRes = document.createElement('div');
+                noRes.className = 'system-badge';
+                noRes.innerText = "No messages match your search.";
+                chatBody.appendChild(noRes);
+                return;
+            }
 
             messagesToRender.forEach(msg => {
-                // System Date Badges
                 if (msg.date !== lastDateStr) {
                     const dateBadge = document.createElement('div');
                     dateBadge.className = 'system-badge';
@@ -270,13 +325,11 @@
                     lastDateStr = msg.date;
                 }
 
-                // Escape HTML Brackets
                 let safeTextParts = msg.text.split('<br>').map(part => {
                     return part.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 });
                 let displayContent = safeTextParts.join('<br>');
 
-                // Detect and Render Media
                 for (const [filename, blobUrl] of Object.entries(mediaVault)) {
                     if (displayContent.includes(filename)) {
                         const lowerFile = filename.toLowerCase();
@@ -298,13 +351,11 @@
                             `;
                         }
 
-                        // Replace the <attached: filename> placeholder with the real media element
                         const attachmentRegex = new RegExp(`&lt;attached:.*?${filename}.*?&gt;`, 'gi');
                         displayContent = displayContent.replace(attachmentRegex, mediaElement);
                     }
                 }
 
-                // Build Bubble
                 const isOutgoing = msg.author === myUsername;
                 const msgBubble = document.createElement('div');
                 msgBubble.className = `msg-container ${isOutgoing ? 'msg-outgoing' : 'msg-incoming'}`;
@@ -318,7 +369,6 @@
                 chatBody.appendChild(msgBubble);
             });
 
-            // Smart Auto-Scroll
             if (displayLimit === 100 || isAtBottom) {
                 chatBody.scrollTop = chatBody.scrollHeight;
             } else {
@@ -340,7 +390,6 @@
                 if (file.name.endsWith('.txt')) {
                     chatFile = file;
                 } else {
-                    // Save temporary links to media files
                     mediaVault[file.name] = URL.createObjectURL(file);
                 }
             });
