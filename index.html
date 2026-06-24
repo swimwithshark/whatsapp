@@ -155,11 +155,13 @@
 <body>
 
     <div class="setup-container" id="setup-view">
-      <h2>WhatsApp Viewer</h2>
-      <p>Select your <code>_chat.txt</code> AND your media files at the same time.</p>
-      <label for="file-input" class="file-label">Choose Files</label>
-      <input type="file" id="file-input" multiple>
-      <div id="status" style="margin-top: 15px; font-size: 0.85rem;">Ready for import</div>
+        <h2>WhatsApp Viewer</h2>
+        <p>Select your entire exported WhatsApp <b>Folder</b> to load the chat and all media simultaneously.</p>
+        <label for="file-input" class="file-label">Choose Folder</label>
+        
+        <input type="file" id="file-input" webkitdirectory multiple>
+        
+        <div id="status">Waiting for folder...</div>
     </div>
 
     <div class="app-shell" id="app-view">
@@ -186,8 +188,11 @@
         const userSelector = document.getElementById('user-selector');
 
         let globalMessages = [];
-        let mediaVault = {}; // Stores temporary links to media files
+        let mediaVault = {};
+        let displayLimit = 100; // Lazy loading limit
+        let currentActiveUser = ""; // Remembers who is selected in the dropdown
 
+        // 1. Receive data from Web Worker
         chatWorker.onmessage = function(event) {
             globalMessages = event.data;
             if (globalMessages.length === 0) {
@@ -195,46 +200,68 @@
                 return;
             }
 
-            // Extract all unique participants
             const uniqueAuthors = [...new Set(globalMessages.map(m => m.author))];
-            
-            // Auto-detect phone owner
-            let primaryUser = uniqueAuthors.find(a => a.includes("Liang Yong Ket")) || uniqueAuthors[1] || uniqueAuthors[0];
+            currentActiveUser = uniqueAuthors.find(a => a.includes("Liang Yong Ket")) || uniqueAuthors[1] || uniqueAuthors[0];
 
-            // Populate the dropdown selector
             userSelector.innerHTML = "";
             uniqueAuthors.forEach(author => {
                 const opt = document.createElement('option');
                 opt.value = author;
                 opt.innerText = author;
-                if (author === primaryUser) opt.selected = true;
+                if (author === currentActiveUser) opt.selected = true;
                 userSelector.appendChild(opt);
             });
 
-            // Listen for user changing the perspective
             userSelector.addEventListener('change', (e) => {
-                renderChat(e.target.value);
+                currentActiveUser = e.target.value;
+                displayLimit = 100; // Reset scroll limit when switching users
+                renderChat(currentActiveUser);
             });
 
-            // Initial render
-            renderChat(primaryUser);
+            renderChat(currentActiveUser);
             
             setupView.style.display = 'none';
             appView.style.display = 'flex';
         };
 
+        // 2. Render Chat UI (with Lazy Loading and Media parsing)
         function renderChat(myUsername) {
+            const oldScrollHeight = chatBody.scrollHeight;
+            const isAtBottom = chatBody.scrollHeight - chatBody.scrollTop <= chatBody.clientHeight + 10;
+            
             chatBody.innerHTML = "";
             let lastDateStr = "";
 
-            // Update Header to show the OTHER person's name
             const otherUsers = [...new Set(globalMessages.map(m => m.author))].filter(a => a !== myUsername);
             headerTitle.innerText = otherUsers.length > 0 ? otherUsers.join(", ") : "Saved Notes";
             headerAvatar.innerText = otherUsers.length > 0 ? otherUsers[0].substring(0, 2).toUpperCase() : "ME";
-            headerCount.innerText = `${globalMessages.length} messages loaded`;
+            headerCount.innerText = `${globalMessages.length} total messages`;
 
-            globalMessages.forEach(msg => {
-                // 1. Add System Date Badges
+            // Lazy Load Button
+            if (globalMessages.length > displayLimit) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.innerText = `⬆️ Load Older Messages (${globalMessages.length - displayLimit} hidden)`;
+                loadMoreBtn.style.padding = "8px 16px";
+                loadMoreBtn.style.margin = "10px auto";
+                loadMoreBtn.style.display = "block";
+                loadMoreBtn.style.borderRadius = "20px";
+                loadMoreBtn.style.border = "1px solid #ccc";
+                loadMoreBtn.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                loadMoreBtn.style.cursor = "pointer";
+                loadMoreBtn.style.color = "var(--wa-header)";
+                loadMoreBtn.style.fontWeight = "bold";
+                
+                loadMoreBtn.onclick = function() {
+                    displayLimit += 200; 
+                    renderChat(currentActiveUser);
+                };
+                chatBody.appendChild(loadMoreBtn);
+            }
+
+            const messagesToRender = globalMessages.slice(-displayLimit);
+
+            messagesToRender.forEach(msg => {
+                // System Date Badges
                 if (msg.date !== lastDateStr) {
                     const dateBadge = document.createElement('div');
                     dateBadge.className = 'system-badge';
@@ -242,95 +269,95 @@
                     chatBody.appendChild(dateBadge);
                     lastDateStr = msg.date;
                 }
-            
-                // 2. Escape HTML brackets so the browser doesn't hide <attached: file>
-                // We split by <br> first so we don't break our multi-line paragraphs!
+
+                // Escape HTML Brackets
                 let safeTextParts = msg.text.split('<br>').map(part => {
                     return part.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 });
                 let displayContent = safeTextParts.join('<br>');
-            
-                // 3. Check for uploaded media
-                // 3. Check for uploaded media
+
+                // Detect and Render Media
                 for (const [filename, blobUrl] of Object.entries(mediaVault)) {
                     if (displayContent.includes(filename)) {
                         const lowerFile = filename.toLowerCase();
-                        
-                        // Generate the correct HTML element based on the file type
                         let mediaElement = "";
-            
+
                         if (lowerFile.endsWith('.opus') || lowerFile.endsWith('.m4a')) {
                             mediaElement = `
                                 <div style="margin-bottom: 6px; font-weight: bold; color: var(--wa-header);">🎵 Voice Note</div>
                                 <audio controls style="max-width: 250px; height: 40px; outline: none;">
                                     <source src="${blobUrl}">
-                                    Your browser does not support audio.
                                 </audio>
                             `;
-                        } 
-                        else if (lowerFile.endsWith('.jpg') || lowerFile.endsWith('.jpeg') || lowerFile.endsWith('.png')) {
+                        } else if (lowerFile.endsWith('.jpg') || lowerFile.endsWith('.jpeg') || lowerFile.endsWith('.png')) {
                             mediaElement = `<img src="${blobUrl}" style="max-width: 100%; max-height: 350px; border-radius: 8px; display: block; margin: 4px 0;">`;
-                        } 
-                        else if (lowerFile.endsWith('.mp4')) {
+                        } else if (lowerFile.endsWith('.mp4')) {
                             mediaElement = `
                                 <div style="margin-bottom: 6px; font-weight: bold; color: var(--wa-header);">🎥 Video</div>
                                 <video controls src="${blobUrl}" style="max-width: 100%; max-height: 350px; border-radius: 8px; display: block; margin: 4px 0;"></video>
                             `;
                         }
-            
-                        // Replace the <attached: filename> text with the actual media player/image
-                        // We use a regular expression to find the specific attached tag and swap it out
-                        const attachmentRegex = new RegExp(`&lt;attached:.*?${filename}.*?&gt;`, 'g');
+
+                        // Replace the <attached: filename> placeholder with the real media element
+                        const attachmentRegex = new RegExp(`&lt;attached:.*?${filename}.*?&gt;`, 'gi');
                         displayContent = displayContent.replace(attachmentRegex, mediaElement);
                     }
                 }
-            
-                // 4. Build the Chat Bubble
+
+                // Build Bubble
                 const isOutgoing = msg.author === myUsername;
                 const msgBubble = document.createElement('div');
                 msgBubble.className = `msg-container ${isOutgoing ? 'msg-outgoing' : 'msg-incoming'}`;
-            
+
                 msgBubble.innerHTML = `
                     <div class="msg-author">${msg.author}</div>
                     <div class="msg-text">${displayContent}</div>
                     <div class="msg-meta">${msg.time}</div>
                 `;
-            
+
                 chatBody.appendChild(msgBubble);
             });
-            chatBody.scrollTop = chatBody.scrollHeight;
+
+            // Smart Auto-Scroll
+            if (displayLimit === 100 || isAtBottom) {
+                chatBody.scrollTop = chatBody.scrollHeight;
+            } else {
+                chatBody.scrollTop = chatBody.scrollHeight - oldScrollHeight;
+            }
         }
 
+        // 3. Handle Folder Upload
         document.getElementById('file-input').addEventListener('change', function(e) {
-          const files = Array.from(e.target.files);
-          if (files.length === 0) return;
-      
-          let chatFile = null;
-          mediaVault = {}; // Reset the vault on new upload
-      
-          // Sort the text file from the media files
-          files.forEach(file => {
-              if (file.name.endsWith('.txt')) {
-                  chatFile = file;
-              } else {
-                  // Create a temporary browser link for the audio/media file
-                  mediaVault[file.name] = URL.createObjectURL(file);
-              }
-          });
-      
-          if (!chatFile) {
-              statusDiv.innerText = "Error: Please make sure to include the _chat.txt file!";
-              return;
-          }
-      
-          statusDiv.innerText = "Processing files via Web Worker thread...";
-      
-          const reader = new FileReader();
-          reader.onload = function(event) {
-              chatWorker.postMessage(event.target.result);
-          };
-          reader.readAsText(chatFile);
-      });
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            let chatFile = null;
+            mediaVault = {}; 
+
+            statusDiv.innerText = "Scanning folder...";
+
+            files.forEach(file => {
+                if (file.name.endsWith('.txt')) {
+                    chatFile = file;
+                } else {
+                    // Save temporary links to media files
+                    mediaVault[file.name] = URL.createObjectURL(file);
+                }
+            });
+
+            if (!chatFile) {
+                statusDiv.innerText = "Error: Could not find the _chat.txt file in this folder!";
+                return;
+            }
+
+            statusDiv.innerText = "Processing text via background thread...";
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                chatWorker.postMessage(event.target.result);
+            };
+            reader.readAsText(chatFile);
+        });
     </script>
 </body>
 </html>
