@@ -251,18 +251,37 @@
                 let displayContent = safeTextParts.join('<br>');
             
                 // 3. Check for uploaded media
+                // 3. Check for uploaded media
                 for (const [filename, blobUrl] of Object.entries(mediaVault)) {
                     if (displayContent.includes(filename)) {
-                        if (filename.toLowerCase().endsWith('.opus') || filename.toLowerCase().endsWith('.m4a')) {
-                            displayContent = `
+                        const lowerFile = filename.toLowerCase();
+                        
+                        // Generate the correct HTML element based on the file type
+                        let mediaElement = "";
+            
+                        if (lowerFile.endsWith('.opus') || lowerFile.endsWith('.m4a')) {
+                            mediaElement = `
                                 <div style="margin-bottom: 6px; font-weight: bold; color: var(--wa-header);">🎵 Voice Note</div>
                                 <audio controls style="max-width: 250px; height: 40px; outline: none;">
-                                    <source src="${blobUrl}" type="audio/ogg">
-                                    <source src="${blobUrl}" type="audio/mp4">
+                                    <source src="${blobUrl}">
                                     Your browser does not support audio.
                                 </audio>
                             `;
+                        } 
+                        else if (lowerFile.endsWith('.jpg') || lowerFile.endsWith('.jpeg') || lowerFile.endsWith('.png')) {
+                            mediaElement = `<img src="${blobUrl}" style="max-width: 100%; max-height: 350px; border-radius: 8px; display: block; margin: 4px 0;">`;
+                        } 
+                        else if (lowerFile.endsWith('.mp4')) {
+                            mediaElement = `
+                                <div style="margin-bottom: 6px; font-weight: bold; color: var(--wa-header);">🎥 Video</div>
+                                <video controls src="${blobUrl}" style="max-width: 100%; max-height: 350px; border-radius: 8px; display: block; margin: 4px 0;"></video>
+                            `;
                         }
+            
+                        // Replace the <attached: filename> text with the actual media player/image
+                        // We use a regular expression to find the specific attached tag and swap it out
+                        const attachmentRegex = new RegExp(`&lt;attached:.*?${filename}.*?&gt;`, 'g');
+                        displayContent = displayContent.replace(attachmentRegex, mediaElement);
                     }
                 }
             
