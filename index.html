@@ -234,6 +234,7 @@
             headerCount.innerText = `${globalMessages.length} messages loaded`;
 
             globalMessages.forEach(msg => {
+                // 1. Add System Date Badges
                 if (msg.date !== lastDateStr) {
                     const dateBadge = document.createElement('div');
                     dateBadge.className = 'system-badge';
@@ -241,22 +242,18 @@
                     chatBody.appendChild(dateBadge);
                     lastDateStr = msg.date;
                 }
-
-                // If the message author matches the dropdown selection, it's outgoing (green)
-                const isOutgoing = msg.author === myUsername;
-
-                const msgBubble = document.createElement('div');
-                msgBubble.className = `msg-container ${isOutgoing ? 'msg-outgoing' : 'msg-incoming'}`;
-
-                // Default text content
-                let displayContent = msg.text;
-                
-                // Check if the message text mentions a filename that we have in our vault
+            
+                // 2. Escape HTML brackets so the browser doesn't hide <attached: file>
+                // We split by <br> first so we don't break our multi-line paragraphs!
+                let safeTextParts = msg.text.split('<br>').map(part => {
+                    return part.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                });
+                let displayContent = safeTextParts.join('<br>');
+            
+                // 3. Check for uploaded media
                 for (const [filename, blobUrl] of Object.entries(mediaVault)) {
                     if (displayContent.includes(filename)) {
-                        
-                        // If it is an audio file, render an HTML5 audio player
-                        if (filename.endsWith('.opus') || filename.endsWith('.m4a') || filename.endsWith('.mp3')) {
+                        if (filename.toLowerCase().endsWith('.opus') || filename.toLowerCase().endsWith('.m4a')) {
                             displayContent = `
                                 <div style="margin-bottom: 6px; font-weight: bold; color: var(--wa-header);">🎵 Voice Note</div>
                                 <audio controls style="max-width: 250px; height: 40px; outline: none;">
@@ -266,19 +263,22 @@
                                 </audio>
                             `;
                         }
-                        // We will add image support here later!
                     }
                 }
-              
+            
+                // 4. Build the Chat Bubble
+                const isOutgoing = msg.author === myUsername;
+                const msgBubble = document.createElement('div');
+                msgBubble.className = `msg-container ${isOutgoing ? 'msg-outgoing' : 'msg-incoming'}`;
+            
                 msgBubble.innerHTML = `
                     <div class="msg-author">${msg.author}</div>
-                    <div class="msg-text">${msg.text}</div>
+                    <div class="msg-text">${displayContent}</div>
                     <div class="msg-meta">${msg.time}</div>
                 `;
-
+            
                 chatBody.appendChild(msgBubble);
             });
-
             chatBody.scrollTop = chatBody.scrollHeight;
         }
 
